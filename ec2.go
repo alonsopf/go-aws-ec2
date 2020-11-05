@@ -1,7 +1,9 @@
 package ec2
 
 import (
+	"bufio"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -66,14 +68,11 @@ func RunInstance(ami, instanceType, securityGroupID, deviceName, keyPairName str
 				fmt.Println(aerr.Error())
 			}
 		} else {
-			// Print the error, cast err to awserr.Error to get the Code and
-			// Message from an error.
 			fmt.Println(err.Error())
 		}
 		return "", "", err
 	}
-	//fmt.Println(result)
-	fmt.Println("waiting for ip public address")
+	fmt.Println("Waiting for ip public address")
 	inputDescribe := &ec2.DescribeInstancesInput{
 		InstanceIds: []*string{
 			aws.String(*result.Instances[0].InstanceId),
@@ -92,8 +91,6 @@ func RunInstance(ami, instanceType, securityGroupID, deviceName, keyPairName str
 						fmt.Println(aerr.Error())
 					}
 				} else {
-					// Print the error, cast err to awserr.Error to get the Code and
-					// Message from an error.
 					fmt.Println(err.Error())
 				}
 				return "", "", err
@@ -112,8 +109,44 @@ func RunInstance(ami, instanceType, securityGroupID, deviceName, keyPairName str
 	return *result.Instances[0].InstanceId, "no-ip", nil
 }
 
+// AssociateIAMRole allows you connect your IAM role to your instance
+func AssociateIAMRole(instanceID, iamRole string) (string, error) {
+	awsConnect, err := session.NewSession(&aws.Config{
+		Region: aws.String(secretKeys.AwsRegion),
+		Credentials: credentials.NewStaticCredentials(
+			secretKeys.AwsAccessKeyID, secretKeys.AwsSecretAccessKey, ""),
+	})
+
+	if err != nil {
+		return "", err
+	}
+	svc := ec2.New(awsConnect)
+	input := &ec2.AssociateIamInstanceProfileInput{
+		IamInstanceProfile: &ec2.IamInstanceProfileSpecification{
+			Name: aws.String(iamRole),
+		},
+		InstanceId: aws.String(instanceID),
+	}
+
+	result, err := svc.AssociateIamInstanceProfile(input)
+	if err != nil {
+		if aerr, ok := err.(awserr.Error); ok {
+			switch aerr.Code() {
+			default:
+				fmt.Println(aerr.Error())
+			}
+		} else {
+			fmt.Println(err.Error())
+		}
+		return "", err
+	}
+	fmt.Println(result)
+	return *result.IamInstanceProfileAssociation.AssociationId, nil
+}
+
 // CreateAWSKeyPair allows you create your key pair if needed
-func CreateAWSKeyPair(keyName string) (string, string, string, error) {
+// set option to 1 if you want to save the pem file to disk
+func CreateAWSKeyPair(keyName string, option int) (string, string, string, error) {
 	awsConnect, err := session.NewSession(&aws.Config{
 		Region: aws.String(secretKeys.AwsRegion),
 		Credentials: credentials.NewStaticCredentials(
@@ -142,6 +175,15 @@ func CreateAWSKeyPair(keyName string) (string, string, string, error) {
 			fmt.Println(err.Error())
 		}
 		return "", "", "", err
+	}
+
+	if option == 1 {
+		f, _ := os.Create(keyName + ".pem")
+		defer f.Close()
+		w := bufio.NewWriter(f)
+		fmt.Fprintf(w, "%v\n", *result.KeyMaterial)
+		w.Flush()
+		os.Chmod(keyName+".pem", 0700)
 	}
 
 	return *result.KeyFingerprint, *result.KeyMaterial, *result.KeyPairId, nil
