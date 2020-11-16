@@ -305,7 +305,7 @@ import (
 			return "", "", nil
 		}
 	}
-	return *result.Instances[0].InstanceId, "no-ip", nil
+	//return *result.Instances[0].InstanceId, "no-ip", nil
 }
 
 // SendSSHPublicKey pushes an SSH public key to a particular OS user on a given EC2 instance for 60 seconds
@@ -381,7 +381,6 @@ func InstallGo(fileNamePem, user, publicDNS string) error {
 		case <-time.After(15 * time.Second):
 			return InstallGo(fileNamePem, user, publicDNS)
 		}
-		return err
 	}
 	defer conn.Close()
 	session, err := conn.NewSession()
@@ -390,8 +389,8 @@ func InstallGo(fileNamePem, user, publicDNS string) error {
 		return err
 	}
 	defer session.Close()
-	var stdoutBuf bytes.Buffer
-	session.Stdout = &stdoutBuf
+	//var stdoutBuf bytes.Buffer
+	//session.Stdout = &stdoutBuf
 
 	executeShell("sudo snap install go --classic", session)
 	executeShell("mkdir src", session)
@@ -430,7 +429,7 @@ func InstallGo(fileNamePem, user, publicDNS string) error {
 	if err != nil {
 		return err
 	}
-	fmt.Println("%s", stdoutBuf.String())
+	//fmt.Println("%s", stdoutBuf.String())
 	return nil
 }
 
