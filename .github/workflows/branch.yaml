@@ -20,6 +20,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
+      - name: Build
+        run: make build-deps deps test
+
       - name: Check for proper formatting
         run: |
           make fmt
