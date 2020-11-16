@@ -21,11 +21,24 @@ func main() {
 
 	fmt.Println("Creating server instance...")
 	mySecurityGroup := "sg-00000000"
-	instanceID, ip, err := ec2.RunInstance("ami-021809d9177640a20", "t2.micro", mySecurityGroup, "/dev/sdh", keyPairName, int64(8))
+	instanceID, publicDNS, err := aws.CreateInstanceAndUploadDockerImage("ami-0e4035ae3f70c400f", "t2.micro", mySecurityGroup, "/dev/sdh", keyPairName, "dockerUser", "dockerPass", "nameImgDocker", int64(8))
 	fmt.Println(instanceID, ip, err)
 	fmt.Println("Associating server instance to IAM Profile...")
         // AmazonSSMRoleForInstancesQuickSetup is the automatic role that was created in the IAM quick setup
 	AssociationId, err := ec2.AssociateIAMRole(instanceID, "AmazonSSMRoleForInstancesQuickSetup") 
 	fmt.Println(AssociationId, err)
+	
+	/*
+	//create ecr repository
+	res, err := aws.CreateRepository("alonsopf/test")
+	fmt.Println(res, err)
+
+	//create kubernetes cluster
+	subnetIds := "subnet-b061adea|subnet-d7dd6eb1"
+	roleArn, err := aws.GetIAMRoleARN("testIAM")
+	fmt.Println(roleArn, err)
+	status, err := aws.CreateKubernetesCluster("1.17", mySecurityGroup, "tekton", roleArn, uid, subnetIds) 
+	fmt.Println(status, err)
+	*/
 }
 ```
