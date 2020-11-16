@@ -2,7 +2,7 @@ package ec2
 
 import (
 	"bufio"
-	"bytes"
+	//"bytes"
 	"encoding/base64"
 	"fmt"
 	"io/ioutil"
